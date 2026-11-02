@@ -1,5 +1,5 @@
 from rest_framework import generics, status
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .serializers import RegistrationSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -42,3 +42,5 @@ class UserProfileUpdateView(generics.UpdateAPIView):
     def get_object(self):
         return self.request.user
 
+class RefreshTokenView(TokenRefreshView):
+    pass
