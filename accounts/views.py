@@ -27,8 +27,18 @@ class LoginView(TokenObtainPairView):
 
 class UserProfileView(generics.RetrieveAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = IsAuthenticated
+    permission_classes = [IsAuthenticated]
 
 
     def get_object(self):
         return self.request.user
+
+
+
+class UserProfileUpdateView(generics.UpdateAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
