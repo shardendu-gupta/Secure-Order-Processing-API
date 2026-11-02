@@ -3,7 +3,7 @@ from .serializers import ProductSerializer
 from .models import Product
 
 
-class ProdutListView(generics.ListAPIView):
+class ProductListView(generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
 
