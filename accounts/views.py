@@ -1,7 +1,8 @@
 from rest_framework import generics, status
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegistrationSerializer, CustomTokenObtainPairSerializer
+from .serializers import RegistrationSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 
 class RegisterView(generics.CreateAPIView):
@@ -23,3 +24,11 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
+
+class UserProfileView(generics.RetrieveAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = IsAuthenticated
+
+
+    def get_object(self):
+        return self.request.user
