@@ -20,3 +20,11 @@ class ProductCreateView(generics.CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
+
+
+class ProductUpdateView(generics.UpdateAPIView):
+    queryset = ProductSerializer
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
+
+    
