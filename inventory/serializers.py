@@ -32,3 +32,12 @@ class StockAdjustmentSerializer(serializers.Serializer):
         return attrs
 
 
+
+class StockMovementSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='inventory.product.name', read_only=True)
+    performed_by = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = StockMovement
+        fields = ['id', 'product_name', 'movement_type', 'quantity', 'previous_quantity', 'new_quantity', 'reason', 'performed_by', 'created_at',]
+
