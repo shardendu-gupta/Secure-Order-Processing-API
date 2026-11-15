@@ -30,4 +30,18 @@ class StockMovement(models.Model):
 
     movement_type = models.CharField(max_length=10, choices=MovementType.choices)
 
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(0)])
+
+
+    previous_quantity = models.PositiveIntegerField()
+
+    new_quantity = models.PositiveIntegerField()
+    reason = models.CharField(max_length=255, blank=True)
+    performed_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='stock-movements')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.inventory.product.name} - {self.movement_type}"
+
     
