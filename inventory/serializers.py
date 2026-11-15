@@ -19,3 +19,10 @@ class InventorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Inventory already exists for this product.")
         return value
 
+
+
+class StockAdjustmentSerializer(serializers.Serializer):
+    movement_type = serializers.ChoiceField(choices=['IN', 'OUT', 'SET'])
+    quantity = serializers.IntegerField(min_value=0)
+    reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
