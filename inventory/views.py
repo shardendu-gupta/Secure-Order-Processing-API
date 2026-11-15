@@ -105,3 +105,4 @@ class StockMovementListView(generics.ListAPIView):
     def get_queryset(self):
         return StockMovement.objects.filter(inventory__product_id=self.kwargs['product_id']
                                             ).select_related('inventory__product','performed_by').order_by('-created_at')
+
