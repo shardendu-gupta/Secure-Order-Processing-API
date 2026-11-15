@@ -33,7 +33,7 @@ class StockMovement(models.Model):
     previous_quantity = models.PositiveIntegerField()
     new_quantity = models.PositiveIntegerField()
     reason = models.CharField(max_length=255, blank=True)
-    performed_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='stock-movements')
+    performed_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='stock_movements')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
