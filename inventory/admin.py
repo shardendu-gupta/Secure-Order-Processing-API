@@ -3,6 +3,7 @@ from .models import Inventory, StockMovement
 
 
 
+
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
     list_display = ('id', 'product', 'quantity', 'reserved_quantity', 'updated_at')
