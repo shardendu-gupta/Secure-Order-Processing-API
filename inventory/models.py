@@ -8,7 +8,7 @@ from django.core.validators import MinValueValidator
 class Inventory(models.Model):
     product = models.OneToOneField(Product, on_delete=models.PROTECT, related_name='inventory')
     quantity = models.PositiveIntegerField(default=0)
-    reversed_quantity = models.PositiveIntegerField(default=0)
+    reserved_quantity = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property

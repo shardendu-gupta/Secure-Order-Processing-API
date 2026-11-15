@@ -34,7 +34,7 @@ class InventoryCreateView(generics.CreateAPIView):
                     performed_by=self.request.user
                 )
 
-class InventoryDetailsView(generics.RetrieveAPIView):
+class InventoryDetailView(generics.RetrieveAPIView):
     serializer_class = InventorySerializer
     permission_classes = [InventoryPermission]
 
