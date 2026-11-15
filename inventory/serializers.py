@@ -26,3 +26,9 @@ class StockAdjustmentSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=0)
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
+    def validate(self, attrs):
+        if attrs['movement_type'] in ['IN', 'OUT'] and attrs['quantity'] == 0:
+            raise serializers.ValidationError("Quantity must be greater than zero for stock in or out.")
+        return attrs
+
+
