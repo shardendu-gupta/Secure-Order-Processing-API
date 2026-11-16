@@ -46,5 +46,21 @@ class OrderDetailsView(generics.RetrieveAPIView):
         return queryset.filter(user=self.request.user)
 
 
+class OrderCancelView(APIView):
+
+
+    permission_classes = [OrderPermission]
+
+    def post(self, request, pk):
+        with transaction.atomic():
+
+            order = get_object_or_404(Order.objects.select_for_update(), pk=pk, user=request.user)
+
+            if order.status != Order.status.PENDING:
+                return Response ({'message':"Only pending orders can be cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+
+            items = order.items.select_related('product').all()
+
+            inventories = Inventory.o
 
 
