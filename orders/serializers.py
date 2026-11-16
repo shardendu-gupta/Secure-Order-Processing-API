@@ -28,9 +28,8 @@ class OderCreateSerializer(serializers.ModelSerializer):
         if len(product_ids) != len(set(product_ids)):
             raise serializers.ValidationError("Duplicate product are not allowed.")
         return value
+
          
-
-
     @transaction
     def create(self, validated_data):
 
@@ -46,13 +45,11 @@ class OderCreateSerializer(serializers.ModelSerializer):
 
             if not inventory:
                 raise serializers.ValidationError(f"Inventory not found for {product.name}.")
-
             if inventory.available_quantity < quantity:
                 raise serializers.ValidationError(f"Insufficient stock for {product.name}.")
 
         order = Order.objects.create(user=self.context['request'].user)
         total_amount = 0
-
         for item in items_data:
             product = item['product']
             quantity = item['quantity']
@@ -67,6 +64,14 @@ class OderCreateSerializer(serializers.ModelSerializer):
 
         order.total_amount = total_amount
         order.save()
-
         return order
+    
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    sku = serializers.CharField(source='product.sku', read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'product_name', 'sku', 'quantity', 'unit_price', 'subtotal']
 
