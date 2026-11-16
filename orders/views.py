@@ -24,5 +24,16 @@ class OrderCreateView(generics.CreateAPIView):
 
 
 
+class OrderListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [OrderPermission]
+
+    def get_queryset(self):
+        queryset = Order.objects.select_related('user').prefetch_related('items__product').order_by('-created_at')
+        if (self.request.user.is_superuser or self.request.user.role in ['STAFF', 'ADMIN']):
+            return queryset
+        return queryset.filter(user=self.request.user)
+    
+
 
 
