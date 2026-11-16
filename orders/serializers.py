@@ -12,7 +12,7 @@ class OrderItemInputSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(min_value=0)
 
 
-class OderCreateSerializer(serializers.ModelSerializer):
+class OrderCreateSerializer(serializers.ModelSerializer):
     items = OrderItemInputSerializer(many=True)
 
     class Meta:
