@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
 from products.models import Product
+from django.db import transaction
+from inventory.models import Inventory
+
 
 
 
@@ -28,8 +31,42 @@ class OderCreateSerializer(serializers.ModelSerializer):
          
 
 
+    @transaction
+    def create(self, validated_data):
 
+        items_data = validated_data.pop('items')
+        product_ids = [item['product'].id for item in items_data]
+        inventories = Inventory.objects.select_for_update().select_related('product').filter(product_id__in=product_ids).order_by('id')
+        inventory_map = {inventory.product_id: inventory for inventory in inventories}
 
+        for item in items_data:
+            product = item['product']
+            quantity = item['quantity']
+            inventory = inventory_map.get(product.id)
 
+            if not inventory:
+                raise serializers.ValidationError(f"Inventory not found for {product.name}.")
 
+            if inventory.available_quantity < quantity:
+                raise serializers.ValidationError(f"Insufficient stock for {product.name}.")
+
+        order = Order.objects.create(user=self.context['request'].user)
+        total_amount = 0
+
+        for item in items_data:
+            product = item['product']
+            quantity = item['quantity']
+            inventory = inventory_map[product.id]
+            subtotal = product.price * quantity
+
+            OrderItem.objects.create(order=order, product=product, quantity=quantity, unit_price=product.price, subtotal=subtotal)
+
+            inventory.reserved_quantity += quantity
+            inventory.save()
+            total_amount += subtotal
+
+        order.total_amount = total_amount
+        order.save()
+
+        return order
 
