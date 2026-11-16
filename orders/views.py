@@ -35,5 +35,16 @@ class OrderListView(generics.ListAPIView):
         return queryset.filter(user=self.request.user)
     
 
+class OrderDetailsView(generics.RetrieveAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [OrderPermission]
+
+    def get_queryset(self):
+        queryset = Order.objects.select_related('user').prefetch_related('items__product')
+        if (self.request.user.is_superuser or self.request.user.role in ['ADMIN', 'STAFF']):
+            return queryset
+        return queryset.filter(user=self.request.user)
+
+
 
 
