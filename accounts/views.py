@@ -1,38 +1,44 @@
+from django.db import transaction
 from rest_framework import generics, status
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .serializers import RegistrationSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, UserProfileSerializer
+from audit.utils import create_audit_log
 from rest_framework.permissions import IsAuthenticated
 
 
-class RegisterView(generics.CreateAPIView):
 
-    serializer_class = RegistrationSerializer
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        user = serializer.save()
-
-        return Response({"msg": "User registered succefully.", "user": {"id": user.id, "username": user.username, "email": user.email}},
-                         status=status.HTTP_201_CREATED)
-
+        with transaction.atomic():
+            user = serializer.save()
+            create_audit_log(request, 'REGISTER', 'User', user.id, f"User {user.username} registered.", user=user)
+        return Response({'message': 'User registered successfully.', 
+                         'user': {'id': user.id, 'username': user.username, 'email': user.email}}, status=status.HTTP_201_CREATED)
 
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.user
+        create_audit_log(request, 'LOGIN', 'User', user.id, f"User {user.username} logged in.", user=user)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class UserProfileView(generics.RetrieveAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-
     def get_object(self):
         return self.request.user
-
 
 
 class UserProfileUpdateView(generics.UpdateAPIView):
@@ -41,6 +47,11 @@ class UserProfileUpdateView(generics.UpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def perform_update(self, serializer):
+        user = serializer.save()
+        create_audit_log(self.request, 'PROFILE_UPDATE', 'User', user.id, f"User {user.username} updated profile.")
+
 
 class RefreshTokenView(TokenRefreshView):
     pass

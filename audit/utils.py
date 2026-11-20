@@ -1,8 +1,7 @@
 from .models import AuditLog
 
 
-
-def create_audit_log(request, action, model_name, object_id=None, description=''):
+def create_audit_log(request, action, model_name, object_id=None, description='', user=None):
 
     ip_address = request.META.get('HTTP_X_FORWARDED_FOR')
 
@@ -11,6 +10,8 @@ def create_audit_log(request, action, model_name, object_id=None, description=''
     else:
         ip_address = request.META.get('REMOTE_ADDR')
 
-    AuditLog.objects.create(
-        user=request.user if request.user.is_authenticated else None, action=action, model_name=model_name, object_id=str(object_id) 
-        if object_id else '', description=description, ip_address=ip_address)
+    if user is None:
+        user = request.user if request.user.is_authenticated else None
+
+    AuditLog.objects.create(user=user, action=action, model_name=model_name, object_id=str(object_id) 
+                            if object_id else '', description=description, ip_address=ip_address)
