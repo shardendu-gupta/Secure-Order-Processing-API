@@ -3,6 +3,7 @@ from .views import OrderCreateView, OrderListView, OrderDetailView, OrderCancelV
 
 
 
+
 urlpatterns = [
 
     path('', OrderListView.as_view(), name='order-list'),
