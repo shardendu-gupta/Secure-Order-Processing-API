@@ -1,12 +1,12 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from .permissions import OrderPermission, OrderStaffPermission
-from .serializers import OrderSerializer, OrderItemSerializer, OrderStatusSerializer, OrderCreateSerializer
+from .serializers import OrderSerializer, OrderStatusSerializer, OrderCreateSerializer
 from rest_framework.response import Response
 from .models import Order
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from inventory.models import Inventory
+from inventory.models import Inventory, StockMovement
 
 
 
@@ -23,7 +23,6 @@ class OrderCreateView(generics.CreateAPIView):
 
 
 
-
 class OrderListView(generics.ListAPIView):
     serializer_class = OrderSerializer
     permission_classes = [OrderPermission]
@@ -35,7 +34,8 @@ class OrderListView(generics.ListAPIView):
         return queryset.filter(user=self.request.user)
     
 
-class OrderDetailsView(generics.RetrieveAPIView):
+
+class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
     permission_classes = [OrderPermission]
 
@@ -46,21 +46,98 @@ class OrderDetailsView(generics.RetrieveAPIView):
         return queryset.filter(user=self.request.user)
 
 
+
 class OrderCancelView(APIView):
-
-
     permission_classes = [OrderPermission]
 
     def post(self, request, pk):
         with transaction.atomic():
-
             order = get_object_or_404(Order.objects.select_for_update(), pk=pk, user=request.user)
-
             if order.status != Order.status.PENDING:
                 return Response ({'message':"Only pending orders can be cancelled."}, status=status.HTTP_400_BAD_REQUEST)
-
+            
             items = order.items.select_related('product').all()
+            inventories = Inventory.objects.select_for_update().filter(product_id__in=items.value_list('product_id',  flat=True)).order_by('id')
+            inventory_map = {inventory.product_id: inventory for inventory in inventories}
 
-            inventories = Inventory.o
+            for item in items:
+                inventory = inventory_map[item.product_id]
+                inventory.reserved_quantity -= item.quantity
+                inventory.save()
+
+            order.status = Order.Status.CANCELLED
+            order.save()
+            return Response({'message': 'Order cancelled successfully.'}, status=status.HTTP_200_OK)
 
 
+
+class OrderStatusUpdateView(APIView):
+    permission_classes = [OrderStaffPermission]
+
+    def patch(self, request, pk):
+        serializer = OrderStatusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_status = serializer.validated_data['status']
+        allowed_transitions = {Order.Status.PENDING: [Order.Status.CONFIRMED, Order.Status.CANCELLED], 
+                               Order.Status.CONFIRMED: [Order.Status.PROCESSING, Order.Status.CANCELLED], 
+                               Order.Status.PROCESSING: [Order.Status.SHIPPED], 
+                               Order.Status.SHIPPED: [Order.Status.DELIVERED], 
+                               Order.Status.DELIVERED: [], 
+                               Order.Status.CANCELLED: [],
+                               }
+
+        with transaction.atomic():
+            order = get_object_or_404(Order.objects.select_for_update(), pk=pk)
+
+            if new_status not in allowed_transitions[order.status]:
+                return Response({'message': 'Invalid order status transition.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if new_status == Order.Status.CANCELLED:
+                items = order.items.all()
+
+                inventories = Inventory.objects.select_for_update().filter(
+                    product_id__in=items.values_list('product_id', flat=True)).order_by('id')
+
+                inventory_map = {inventory.product_id: inventory for inventory in inventories}
+
+                for item in items:
+                    inventory = inventory_map[item.product_id]
+                    inventory.reserved_quantity -= item.quantity
+                    inventory.save()
+
+            if new_status == Order.Status.PROCESSING:
+                items = order.items.select_related('product').all()
+                inventories = Inventory.objects.select_for_update().filter(
+                    product_id__in=items.values_list('product_id', flat=True)).order_by('id')
+
+                inventory_map = {inventory.product_id: inventory for inventory in inventories}
+
+                for item in items:
+                    inventory = inventory_map[item.product_id]
+                    if (inventory.reserved_quantity < item.quantity or inventory.quantity < item.quantity):
+                        return Response({'message': 'Reserved stock is not available.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                for item in items:
+                    inventory = inventory_map[item.product_id]
+                    previous_quantity = inventory.quantity
+                    inventory.quantity -= item.quantity
+                    inventory.reserved_quantity -= item.quantity
+                    inventory.save()
+
+                    StockMovement.objects.create(
+                        inventory=inventory,
+                        movement_type=StockMovement.MovementType.OUT,
+                        quantity=item.quantity,
+                        previous_quantity=previous_quantity,
+                        new_quantity=inventory.quantity,
+                        reason=f'Order {order.order_number} processing',
+                        performed_by=request.user
+                    )
+
+            order.status = new_status
+            order.save()
+        return Response({'message': 'Order status updated successfully.', 'order': OrderSerializer(order).data}, status=status.HTTP_200_OK)
+
+
+
+        

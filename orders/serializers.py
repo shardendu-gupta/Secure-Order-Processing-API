@@ -30,7 +30,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         return value
 
          
-    @transaction
+    @transaction.atomic
     def create(self, validated_data):
 
         items_data = validated_data.pop('items')
