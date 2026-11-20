@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from .models import Inventory, StockMovement
 from .serializers import InventorySerializer, StockAdjustmentSerializer, StockMovementSerializer
 from .permissions import InventoryPermission, StockHistoryPermission
-from audit.utils import create_audit_log
+
+
 
 
 class InventoryListView(generics.ListAPIView):
@@ -21,11 +22,9 @@ class InventoryCreateView(generics.CreateAPIView):
     permission_classes = [InventoryPermission]
 
     def perform_create(self, serializer):
-        with transaction.atomic():
-            inventory = serializer.save()
-            StockMovement.objects.create(inventory=inventory, movement_type=StockMovement.MovementType.INITIAL, quantity=inventory.quantity, 
-                                         previous_quantity=0, new_quantity=inventory.quantity, reason='Initial stock', performed_by=self.request.user)
-            create_audit_log(self.request, 'CREATE', 'Inventory', inventory.id, f"Initial inventory created for {inventory.product.name}.")
+        inventory = serializer.save()
+        StockMovement.objects.create(inventory=inventory, movement_type=StockMovement.MovementType.INITIAL, quantity=inventory.quantity, 
+                                     previous_quantity=0, new_quantity=inventory.quantity, reason='Initial stock', performed_by=self.request.user)
 
 
 class InventoryDetailView(generics.RetrieveAPIView):
@@ -62,7 +61,6 @@ class StockAdjustmentView(APIView):
             inventory.save()
             StockMovement.objects.create(inventory=inventory, movement_type=movement_type, quantity=quantity, previous_quantity=previous_quantity, 
                                          new_quantity=new_quantity, reason=reason, performed_by=request.user)
-            create_audit_log(request, 'STOCK_ADJUSTMENT', 'Inventory', inventory.id, f"Stock {movement_type}: {quantity} for {inventory.product.name}.")
         return Response({'message': 'Stock updated successfully.', 'product': inventory.product.name, 'previous_quantity': previous_quantity, 
                          'new_quantity': new_quantity, 'reserved_quantity': inventory.reserved_quantity, 
                          'available_quantity': inventory.available_quantity}, status=status.HTTP_200_OK)
@@ -76,9 +74,3 @@ class StockMovementListView(generics.ListAPIView):
         return StockMovement.objects.filter(inventory__product_id=self.kwargs['product_id']
                                             ).select_related('inventory__product', 'performed_by').order_by('-created_at')
 
-
-
-
-    
-
-    
