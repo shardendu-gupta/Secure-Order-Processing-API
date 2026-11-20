@@ -1,23 +1,24 @@
+from django.db import transaction
 from rest_framework import generics, filters
-from .serializers import ProductSerializer
-from .models import Product
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
-from .permissions import ProductPermisson
+from .models import Product
+from .serializers import ProductSerializer
+from .permissions import ProductPermission
+from audit.utils import create_audit_log
 
 
 
 
 class ProductPagination(PageNumberPagination):
     page_size = 10
-    page_query_param = 'page_size'
+    page_size_query_param = 'page_size'
     max_page_size = 100
 
 
 class ProductListView(generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [ProductPermisson]
+    permission_classes = [ProductPermission]
     pagination_class = ProductPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'sku', 'description']
@@ -25,30 +26,42 @@ class ProductListView(generics.ListAPIView):
     ordering = ['-created_at']
 
 
-class ProductDetailsView(generics.RetrieveAPIView):
+class ProductDetailView(generics.RetrieveAPIView):
     queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [ProductPermisson]
+    permission_classes = [ProductPermission]
 
 
 class ProductCreateView(generics.CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [ProductPermisson]
+    permission_classes = [ProductPermission]
 
+    def perform_create(self, serializer):
+        with transaction.atomic():
+            product = serializer.save()
+            create_audit_log(self.request, 'CREATE', 'Product', product.id, f"Product {product.name} created.")
 
 
 class ProductUpdateView(generics.UpdateAPIView):
-    queryset = ProductSerializer
+    queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [ProductPermisson]
+    permission_classes = [ProductPermission]
+
+    def perform_update(self, serializer):
+        with transaction.atomic():
+            product = serializer.save()
+            create_audit_log(self.request, 'UPDATE', 'Product', product.id, f"Product {product.name} updated.")
 
 
 class ProductDeleteView(generics.DestroyAPIView):
-    queryset = Product.objects.all()
+    queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [ProductPermisson]
+    permission_classes = [ProductPermission]
 
     def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
+        with transaction.atomic():
+            instance.is_active = False
+            instance.save()
+            create_audit_log(self.request, 'DELETE', 'Product', instance.id, f"Product {instance.name} deactivated.")
+
