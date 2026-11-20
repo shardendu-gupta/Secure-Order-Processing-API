@@ -8,7 +8,6 @@ from .permissions import ProductPermisson
 
 
 
-
 class ProductPagination(PageNumberPagination):
     page_size = 10
     page_query_param = 'page_size'
@@ -36,6 +35,7 @@ class ProductCreateView(generics.CreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [ProductPermisson]
+
 
 
 class ProductUpdateView(generics.UpdateAPIView):
