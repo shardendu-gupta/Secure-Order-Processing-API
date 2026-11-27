@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-11-27T08:06:47.037Z",
+  "files": {
+    "config/settings.py": {
+      "aiPct": 0,
+      "pastePct": 96,
+      "totalLines": 116
+    },
+    "inventory/models.py": {
+      "aiPct": 0,
+      "pastePct": 0,
+      "totalLines": 30
+    },
+    "inventory/serializers.py": {
+      "aiPct": 0,
+      "pastePct": 0,
+      "totalLines": 29
+    },
+    "inventory/views.py": {
+      "aiPct": 0,
+      "pastePct": 0,
+      "totalLines": 59
+    },
+    "orders/models.py": {
+      "aiPct": 0,
+      "pastePct": 0,
+      "totalLines": 33
+    },
+    "requirements.txt": {
+      "aiPct": 0,
+      "pastePct": 89,
+      "totalLines": 9
+    }
+  },
+  "aggregate": {
+    "totalFiles": 6,
+    "totalLines": 276,
+    "aiPct": 0,
+    "pastePct": 43
+  }
+}

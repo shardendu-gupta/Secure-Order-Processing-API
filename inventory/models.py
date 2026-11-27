@@ -12,8 +12,8 @@ class Inventory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
-    def availble_quantity(self):
-        return self.quantity - self.reversed_quantity
+    def available_quantity(self):
+        return self.quantity - self.reserved_quantity
     
     def __str__(self):
         return self.product.name
